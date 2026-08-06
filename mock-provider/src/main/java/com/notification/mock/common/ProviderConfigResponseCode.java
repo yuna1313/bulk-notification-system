@@ -1,6 +1,5 @@
-package com.notification.mock.config;
+package com.notification.mock.common;
 
-import com.notification.mock.common.ApiResponseCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

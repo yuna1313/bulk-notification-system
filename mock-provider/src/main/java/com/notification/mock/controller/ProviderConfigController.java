@@ -1,10 +1,10 @@
 package com.notification.mock.controller;
 
 import com.notification.mock.common.ApiResponse;
-import com.notification.mock.config.ProviderConfig;
-import com.notification.mock.config.ProviderConfigRequest;
-import com.notification.mock.config.ProviderConfigResponseCode;
-import com.notification.mock.config.ProviderConfigStore;
+import com.notification.mock.common.ProviderConfigResponseCode;
+import com.notification.mock.dto.ProviderConfig;
+import com.notification.mock.dto.ProviderConfigRequest;
+import com.notification.mock.service.ProviderConfigStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

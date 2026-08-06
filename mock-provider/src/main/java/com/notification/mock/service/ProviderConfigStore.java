@@ -1,5 +1,7 @@
-package com.notification.mock.config;
+package com.notification.mock.service;
 
+import com.notification.mock.dto.ProviderConfig;
+import com.notification.mock.dto.ProviderConfigRequest;
 import org.springframework.stereotype.Component;
 
 /**

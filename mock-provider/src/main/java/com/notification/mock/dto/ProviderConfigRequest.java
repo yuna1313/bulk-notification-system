@@ -1,4 +1,4 @@
-package com.notification.mock.config;
+package com.notification.mock.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

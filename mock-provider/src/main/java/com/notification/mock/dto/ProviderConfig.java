@@ -1,4 +1,4 @@
-package com.notification.mock.config;
+package com.notification.mock.dto;
 
 /**
  * mock-provider가 외부 발송사처럼 동작할 때 사용할 설정값을 표현합니다.
