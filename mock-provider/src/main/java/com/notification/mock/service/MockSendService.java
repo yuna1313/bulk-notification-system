@@ -7,11 +7,13 @@ import com.notification.mock.dto.SendResponse;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
  * 외부 발송사의 지연, 실패, 요청 제한을 동기 방식으로 재현합니다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MockSendService {
@@ -30,12 +32,24 @@ public class MockSendService {
 	public SendResult send(SendRequest request) {
 		ProviderConfig config = configStore.get();
 		if (!rateLimiter.tryAcquire(config.rateLimitPerSecond())) {
+			log.warn(
+					"[send] 초당 요청 한도 초과: messageId={}, recipientId={}, rateLimitPerSecond={}",
+					request.getMessageId(),
+					request.getRecipientId(),
+					config.rateLimitPerSecond()
+			);
 			return SendResult.fail(SendResponseCode.SEND_RATE_LIMIT_FAIL);
 		}
 
 		waitLatency(config.latencyMs());
 
 		if (isFailure(config.failureRate())) {
+			log.warn(
+					"[send] 설정된 실패율에 따른 발송 실패: messageId={}, recipientId={}, failureRate={}",
+					request.getMessageId(),
+					request.getRecipientId(),
+					config.failureRate()
+			);
 			return SendResult.fail(SendResponseCode.SEND_FAIL);
 		}
 
