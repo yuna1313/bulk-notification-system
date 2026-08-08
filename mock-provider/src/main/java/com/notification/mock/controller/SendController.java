@@ -1,6 +1,7 @@
 package com.notification.mock.controller;
 
 import com.notification.mock.common.ApiResponse;
+import com.notification.mock.common.SendResponseCode;
 import com.notification.mock.dto.SendRequest;
 import com.notification.mock.dto.SendResponse;
 import com.notification.mock.service.MockSendService;
@@ -8,6 +9,8 @@ import com.notification.mock.service.SendResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,11 +36,20 @@ public class SendController {
 			description = "실제 발송은 하지 않고 현재 설정된 지연 시간, 실패율, 초당 요청 제한에 따라 응답합니다."
 	)
 	@PostMapping("/send")
-	public ApiResponse<SendResponse> send(@RequestBody SendRequest request) {
+	public ResponseEntity<ApiResponse<SendResponse>> send(@RequestBody SendRequest request) {
 		SendResult result = sendService.send(request);
 		if (result.isSuccess()) {
-			return ApiResponse.success(result.responseCode(), result.response());
+			return ResponseEntity.ok(ApiResponse.success(result.responseCode(), result.response()));
 		}
-		return ApiResponse.fail(result.responseCode(), null);
+		return ResponseEntity
+				.status(httpStatus(result.responseCode()))
+				.body(ApiResponse.fail(result.responseCode(), null));
+	}
+
+	private HttpStatus httpStatus(SendResponseCode responseCode) {
+		if (responseCode == SendResponseCode.SEND_RATE_LIMIT_FAIL) {
+			return HttpStatus.TOO_MANY_REQUESTS;
+		}
+		return HttpStatus.INTERNAL_SERVER_ERROR;
 	}
 }
