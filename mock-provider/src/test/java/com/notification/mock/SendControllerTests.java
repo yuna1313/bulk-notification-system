@@ -36,7 +36,6 @@ class SendControllerTests {
 								}
 								"""))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.code").value("SEND_SUCCESS"))
 				.andExpect(jsonPath("$.message").value("발송 요청 처리를 성공하였습니다."))
 				.andExpect(jsonPath("$.data.messageId").value("message-1"))
@@ -60,7 +59,6 @@ class SendControllerTests {
 								}
 								"""))
 				.andExpect(status().isInternalServerError())
-				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("SEND_FAIL"))
 				.andExpect(jsonPath("$.message").value("발송 요청 처리에 실패하였습니다."));
 	}
@@ -72,12 +70,10 @@ class SendControllerTests {
 
 		sendRequest("message-1")
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.code").value("SEND_SUCCESS"));
 
 		sendRequest("message-2")
 				.andExpect(status().isTooManyRequests())
-				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("SEND_RATE_LIMIT_FAIL"))
 				.andExpect(jsonPath("$.message").value("초당 요청 한도를 초과하였습니다."));
 	}

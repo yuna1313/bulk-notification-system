@@ -24,7 +24,6 @@ class ProviderConfigControllerTests {
 	void getConfigReturnsDefaultValues() throws Exception {
 		mockMvc.perform(get("/config"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.code").value("CONFIG_GET_SUCCESS"))
 				.andExpect(jsonPath("$.message").value("mock-provider 설정 조회를 성공하였습니다."))
 				.andExpect(jsonPath("$.data.latencyMs").value(200))
@@ -39,7 +38,6 @@ class ProviderConfigControllerTests {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"latencyMs\":3000}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.code").value("CONFIG_UPDATE_SUCCESS"))
 				.andExpect(jsonPath("$.message").value("mock-provider 설정 변경을 성공하였습니다."))
 				.andExpect(jsonPath("$.data.latencyMs").value(3000))

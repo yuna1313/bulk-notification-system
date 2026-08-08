@@ -39,11 +39,11 @@ public class SendController {
 	public ResponseEntity<ApiResponse<SendResponse>> send(@RequestBody SendRequest request) {
 		SendResult result = sendService.send(request);
 		if (result.isSuccess()) {
-			return ResponseEntity.ok(ApiResponse.success(result.responseCode(), result.response()));
+			return ResponseEntity.ok(ApiResponse.of(result.responseCode(), result.response()));
 		}
 		return ResponseEntity
 				.status(httpStatus(result.responseCode()))
-				.body(ApiResponse.fail(result.responseCode(), null));
+				.body(ApiResponse.of(result.responseCode(), null));
 	}
 
 	private HttpStatus httpStatus(SendResponseCode responseCode) {

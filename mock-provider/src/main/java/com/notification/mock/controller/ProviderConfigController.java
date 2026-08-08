@@ -36,7 +36,7 @@ public class ProviderConfigController {
 	)
 	@GetMapping("/config")
 	public ApiResponse<ProviderConfig> getConfig() {
-		return ApiResponse.success(ProviderConfigResponseCode.CONFIG_GET_SUCCESS, configStore.get());
+		return ApiResponse.of(ProviderConfigResponseCode.CONFIG_GET_SUCCESS, configStore.get());
 	}
 
 	/**
@@ -58,6 +58,6 @@ public class ProviderConfigController {
 				updatedConfig.failureRate(),
 				updatedConfig.rateLimitPerSecond()
 		);
-		return ApiResponse.success(ProviderConfigResponseCode.CONFIG_UPDATE_SUCCESS, updatedConfig);
+		return ApiResponse.of(ProviderConfigResponseCode.CONFIG_UPDATE_SUCCESS, updatedConfig);
 	}
 }
