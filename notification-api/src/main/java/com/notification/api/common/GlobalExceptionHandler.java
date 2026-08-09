@@ -5,6 +5,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,6 +49,23 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 				.badRequest()
 				.body(ApiResponse.of(CommonResponseCode.INVALID_REQUEST_FAIL, fieldMessages));
+	}
+
+	/**
+	 * 요청 본문을 읽지 못한 경우 잘못된 요청으로 응답합니다.
+	 *
+	 * <p>정의되지 않은 enum 값이나 형식이 맞지 않는 날짜가 들어오면 본문 변환 단계에서 실패합니다.
+	 *
+	 * @param exception 본문 변환 실패로 발생한 예외
+	 * @return 잘못된 요청 응답 코드가 실린 공통 API 응답
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMessageNotReadableException(
+			HttpMessageNotReadableException exception) {
+		log.warn("요청 본문을 읽지 못하였습니다.", exception);
+		return ResponseEntity
+				.badRequest()
+				.body(ApiResponse.of(CommonResponseCode.INVALID_REQUEST_FAIL, null));
 	}
 
 	/**
