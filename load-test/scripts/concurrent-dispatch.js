@@ -10,7 +10,7 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
 import { check } from 'k6';
-import { Trend } from 'k6/metrics';
+import { Rate, Trend } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const DISPATCH_VUS = Number(__ENV.DISPATCH_VUS || 10);
@@ -21,6 +21,9 @@ const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } };
 
 // 발송이 도는 동안의 접수 API 응답시간입니다. 이 값이 이 테스트의 핵심 지표입니다.
 const probeDuration = new Trend('probe_create_duration', true);
+
+// 접수 API가 실제로 쓸 만한 상태였던 비율입니다. p(95)보다 읽기 쉬운 가용성 지표입니다.
+const probeUnderOneSecond = new Rate('probe_create_under_1s');
 
 export const options = {
 	scenarios: {
@@ -33,13 +36,17 @@ export const options = {
 			maxDuration: '60m',
 		},
 		// 발송이 도는 동안 접수 API를 초당 1회 호출해 응답 가능 여부를 확인합니다.
+		//
+		// 접수가 막히면 응답이 분 단위로 늘어납니다. VU가 모자라면 k6가 그 느린 반복을
+		// 버려서(dropped_iterations) 가장 중요한 샘플이 통계에서 빠집니다.
+		// 막힌 응답까지 전부 기록하도록 VU를 넉넉히 잡습니다.
 		probe: {
 			executor: 'constant-arrival-rate',
 			rate: 1,
 			timeUnit: '1s',
 			duration: PROBE_DURATION,
-			preAllocatedVUs: 10,
-			maxVUs: 30,
+			preAllocatedVUs: 50,
+			maxVUs: 200,
 			exec: 'probe',
 		},
 	},
@@ -119,7 +126,12 @@ export function probe() {
 	});
 
 	probeDuration.add(response.timings.duration);
+	probeUnderOneSecond.add(response.timings.duration < 1000);
+
+	// 상태 코드만 보면 80초 걸려 돌아온 응답도 성공으로 집계됩니다.
+	// 실무에서 그것은 장애이므로 응답 시간 기준을 함께 확인합니다.
 	check(response, {
-		'발송 중에도 접수 성공(201)': (r) => r.status === 201,
+		'접수 성공(201)': (r) => r.status === 201,
+		'접수 1초 이내 응답': (r) => r.timings.duration < 1000,
 	});
 }
