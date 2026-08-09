@@ -4,6 +4,9 @@ import com.notification.api.client.dto.ProviderApiResponse;
 import com.notification.api.client.dto.ProviderSendRequest;
 import com.notification.api.client.dto.ProviderSendResponse;
 import com.notification.api.domain.FailureReason;
+import java.net.BindException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
@@ -50,12 +53,39 @@ public class MockProviderClient {
 
 			return toResult(request, response);
 		} catch (ResourceAccessException exception) {
-			log.warn("[send] 발송사 응답 시간을 초과하였습니다. messageId={}", request.messageId(), exception);
-			return ProviderSendResult.fail(FailureReason.TIMEOUT);
+			FailureReason failureReason = toNetworkFailureReason(exception);
+			log.warn("[send] 발송사에 접근하지 못하였습니다. messageId={}, failureReason={}",
+					request.messageId(), failureReason, exception);
+			return ProviderSendResult.fail(failureReason);
 		} catch (RestClientException exception) {
 			log.warn("[send] 발송사 호출에 실패하였습니다. messageId={}", request.messageId(), exception);
 			return ProviderSendResult.fail(FailureReason.UNKNOWN);
 		}
+	}
+
+	/**
+	 * 발송사에 접근하지 못한 원인을 실패 사유로 분류합니다.
+	 *
+	 * <p>{@link ResourceAccessException}은 응답 지연과 연결 실패를 모두 감싸고 있어
+	 * 원인 예외까지 확인해야 둘을 구분할 수 있습니다. 발송사가 느린 것과
+	 * 연결 자체가 안 되는 것은 부하 테스트 결과 해석에서 전혀 다른 의미를 가집니다.
+	 *
+	 * @param exception 발송사 호출 중 발생한 예외
+	 * @return 원인에 해당하는 실패 사유
+	 */
+	static FailureReason toNetworkFailureReason(Throwable exception) {
+		for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SocketTimeoutException) {
+				return FailureReason.TIMEOUT;
+			}
+			if (cause instanceof BindException || cause instanceof ConnectException) {
+				return FailureReason.CONNECT_FAIL;
+			}
+			if (cause == cause.getCause()) {
+				break;
+			}
+		}
+		return FailureReason.UNKNOWN;
 	}
 
 	private ProviderSendResult toResult(

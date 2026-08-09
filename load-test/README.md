@@ -26,8 +26,16 @@ cd mock-provider && ./gradlew bootRun
 
 # 알림 서버 (포트 8080) — 힙을 넉넉히 줍니다
 cd notification-api && ./gradlew build
-java -Xmx2g -jar build/libs/api-0.0.1-SNAPSHOT.jar --spring.profiles.active=loadtest
+java -Xmx2g -Dhttp.maxConnections=300 -jar build/libs/api-0.0.1-SNAPSHOT.jar
 ```
+
+`-Dhttp.maxConnections`는 발송사로 나가는 HTTP 커넥션의 재사용 캐시 크기입니다. 기본값이 5라
+동시 발송이 수십 건을 넘어가면 매 호출이 새 TCP 소켓을 열고 닫습니다. 닫힌 소켓은 TIME_WAIT로
+약 2분간 남고 Windows 임시 포트는 16,384개뿐이어서, 동시 발송 200건 구간에서 포트가 고갈되며
+`BindException: Address already in use`가 발생합니다.
+
+이 값은 동시 발송 수보다 크게 잡습니다. 발송사가 느려서 실패한 것과 소켓 자원이 없어서 실패한
+것을 섞지 않으려면 필요한 설정입니다.
 
 ### 측정 전 초기화
 
