@@ -11,3 +11,9 @@ spring:
       ddl-auto: create-drop
     open-in-view: false
     show-sql: true
+
+notification:
+  provider:
+    base-url: http://localhost:8081
+    connect-timeout: 2s
+    read-timeout: 10s
