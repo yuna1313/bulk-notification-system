@@ -28,16 +28,24 @@ v1은 v2 완성 후에도 삭제하지 않고 `v1.0-sync` 태그로 보존합니
 
 ## 기술 스택
 
-Java 17 · Spring Boot 4.1.0 · Spring Data JPA · MySQL 8 · Gradle · Docker Compose · k6
+Java 17 · Spring Boot 4.1.0 · Spring Data JPA · MySQL 8 · Gradle · k6
 
 v2에서 Apache Kafka, Prometheus, Grafana가 추가됩니다.
 
 ## 실행
 
-```bash
-# 인프라 기동
-docker compose up -d
+로컬에 MySQL 8이 실행 중이어야 합니다. 최초 1회 스키마와 계정을 준비합니다.  
+(아래 아이디와 비밀번호는 예시입니다.)
 
+```sql
+CREATE DATABASE notification CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'notification'@'localhost' IDENTIFIED BY 'notification';
+GRANT ALL PRIVILEGES ON notification.* TO 'notification'@'localhost';
+```
+
+기존 계정을 쓰려면 `DB_USERNAME`, `DB_PASSWORD` 환경변수로 덮어씁니다.
+
+```bash
 # 가짜 발송사 서버 (포트 8081)
 cd mock-provider && ./gradlew bootRun
 
