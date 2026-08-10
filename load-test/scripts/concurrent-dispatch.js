@@ -96,14 +96,13 @@ export function dispatch(data) {
 	});
 
 	check(response, {
-		'발송 실행 성공(200)': (r) => r.status === 200,
+		'발송 접수 성공(202)': (r) => r.status === 202,
 	});
 
-	if (response.status === 200) {
+	if (response.status === 202) {
 		const body = response.json('data');
 		console.log(
-			`notificationId=${notificationId} total=${body.totalCount} success=${body.successCount} ` +
-			`fail=${body.failCount} elapsedMillis=${body.elapsedMillis}`
+			`notificationId=${notificationId} queued=${body.queuedCount} elapsedMillis=${body.elapsedMillis}`
 		);
 	}
 }
