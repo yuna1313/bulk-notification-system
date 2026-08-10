@@ -44,6 +44,15 @@ notification:
       # 한 주기에 발행할 최대 건수입니다. 처리량에 직접 영향을 주므로 측정 대상입니다.
       batch-size: 500
 
+  dispatch:
+    completion:
+      enabled: true
+      # 발송이 실제로 끝난 시점과 상태가 완료로 바뀌는 시점의 최대 간격입니다.
+      # 완료 시각 자체는 마지막 발송 시각으로 남기므로 이 지연이 소요시간에 섞이지는 않습니다.
+      interval-millis: 2000
+      # 한 주기에 확인할 발송 요청 수입니다.
+      batch-size: 100
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s
