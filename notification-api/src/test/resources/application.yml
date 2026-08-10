@@ -12,7 +12,21 @@ spring:
     open-in-view: false
     show-sql: true
 
+  # 테스트는 Kafka 브로커 없이 실행합니다. 토픽 자동 생성을 꺼두지 않으면
+  # 기동할 때마다 브로커에 접속을 시도해 테스트가 느려집니다.
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      auto-create: false
+
 notification:
+  kafka:
+    send-topic:
+      name: notification.send
+      partitions: 10
+      replicas: 1
+      retention-days: 7
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s

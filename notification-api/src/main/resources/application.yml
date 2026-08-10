@@ -18,7 +18,18 @@ spring:
       hibernate:
         format_sql: true
 
+  kafka:
+    bootstrap-servers: localhost:9092
+
 notification:
+  kafka:
+    send-topic:
+      name: notification.send
+      # 동시에 발송할 수 있는 컨슈머 수의 상한입니다. 부하 테스트에서 바꿔가며 측정합니다.
+      partitions: 10
+      replicas: 1
+      retention-days: 7
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s
