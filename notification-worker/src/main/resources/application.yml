@@ -6,6 +6,20 @@ spring:
   application:
     name: notification-worker
 
+  # notification-api와 같은 DB를 봅니다. 다만 워커가 건드리는 것은 notification_message의
+  # 발송 결과 컬럼뿐이고, 스키마를 만들고 바꾸는 것은 notification-api의 몫입니다.
+  datasource:
+    url: jdbc:mysql://localhost:3306/notification?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      # 워커는 스키마를 절대 바꾸지 않습니다. 매핑이 실제 테이블과 맞는지만 확인하고,
+      # 어긋나면 기동에 실패해 즉시 알 수 있게 합니다.
+      ddl-auto: validate
+    open-in-view: false
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -34,6 +48,11 @@ notification:
     send-topic:
       # notification-api가 발행하는 토픽과 같아야 합니다.
       name: notification.send
+
+  provider:
+    base-url: http://localhost:8081
+    connect-timeout: 2s
+    read-timeout: 10s
 
 management:
   endpoints:

@@ -1,4 +1,16 @@
 spring:
+  datasource:
+    url: jdbc:h2:mem:notification;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      # 운영에서는 validate지만 테스트는 붙을 DB가 없으므로 매핑에서 스키마를 만들어 씁니다.
+      # 워커가 매핑한 컬럼만 생성되며, 매핑하지 않은 컬럼은 테스트 스키마에 없습니다.
+      ddl-auto: create-drop
+    open-in-view: false
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -14,3 +26,8 @@ notification:
   kafka:
     send-topic:
       name: notification.send
+
+  provider:
+    base-url: http://localhost:8081
+    connect-timeout: 2s
+    read-timeout: 10s

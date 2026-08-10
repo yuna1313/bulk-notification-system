@@ -1,6 +1,7 @@
 package com.notification.worker.consumer;
 
 import com.notification.worker.event.NotificationSendEvent;
+import com.notification.worker.service.NotificationSendService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -9,13 +10,11 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 발송 토픽에서 발송 지시를 받습니다.
- *
- * <p>지금은 받은 것을 기록만 합니다. 발송사 호출과 결과 저장은 다음 단계에서 붙입니다.
- * 컨슈머 설정이 제대로 됐는지를 발송 로직과 분리해서 확인하기 위해서입니다.
+ * 발송 토픽에서 발송 지시를 받아 발송 처리로 넘깁니다.
  *
  * <p>메서드가 예외 없이 끝나야 오프셋이 커밋됩니다. 예외가 나가면 같은 메시지를 다시 받으므로
- * 처리에 실패한 발송이 조용히 사라지지는 않습니다.
+ * 처리에 실패한 발송이 조용히 사라지지는 않습니다. 다만 계속 실패하는 메시지는 계속 다시
+ * 배달되어 뒤에 있는 메시지를 막게 되는데, 이 문제는 재시도와 DLQ 단계에서 다룹니다.
  */
 @Slf4j
 @Component
@@ -23,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 public class NotificationSendConsumer {
 
 	private final ObjectMapper objectMapper;
+	private final NotificationSendService sendService;
 
 	/**
 	 * 발송 지시 한 건을 처리합니다.
@@ -32,8 +32,9 @@ public class NotificationSendConsumer {
 	@KafkaListener(topics = "${notification.kafka.send-topic.name}")
 	public void consume(ConsumerRecord<String, String> record) {
 		NotificationSendEvent event = objectMapper.readValue(record.value(), NotificationSendEvent.class);
-		log.info("[consume] 발송 지시 수신: partition={}, offset={}, key={}, eventId={}, messageId={}, recipientId={}",
-				record.partition(), record.offset(), record.key(),
-				event.eventId(), event.messageId(), event.recipientId());
+		log.debug("[consume] 발송 지시 수신: partition={}, offset={}, eventId={}, messageId={}",
+				record.partition(), record.offset(), event.eventId(), event.messageId());
+
+		sendService.send(event);
 	}
 }
