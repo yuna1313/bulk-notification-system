@@ -17,6 +17,12 @@ spring:
       group-id: notification-worker-test
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # DLQ 토픽을 만들려고 브로커에 접속하지 않게 합니다.
+    admin:
+      auto-create: false
     listener:
       # 테스트는 브로커 없이 실행합니다. 켜두면 리스너가 브로커에 붙으려 계속 재시도하고,
       # 브로커가 떠 있으면 진짜 발송 지시를 집어가 버립니다.
@@ -26,6 +32,16 @@ notification:
   kafka:
     send-topic:
       name: notification.send
+
+    dlq-topic:
+      name: notification.send.dlq
+      partitions: 10
+      replicas: 1
+      retention-days: 30
+
+  retry:
+    interval-millis: 1000
+    max-retries: 2
 
   provider:
     base-url: http://localhost:8081

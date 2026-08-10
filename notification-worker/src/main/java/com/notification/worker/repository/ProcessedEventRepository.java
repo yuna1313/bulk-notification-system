@@ -48,4 +48,16 @@ public class ProcessedEventRepository {
 			return false;
 		}
 	}
+
+	/**
+	 * 처리 기록을 지워 같은 이벤트를 다시 처리할 수 있게 합니다.
+	 *
+	 * <p>발송에 실패했을 때 부릅니다. 기록을 남겨두면 Kafka가 메시지를 다시 배달해도
+	 * {@link #claim}에서 걸려 재시도가 아예 이루어지지 않습니다.
+	 *
+	 * @param eventId 이벤트 식별자
+	 */
+	public void release(String eventId) {
+		jdbcTemplate.update("delete from processed_event where event_id = ?", eventId);
+	}
 }

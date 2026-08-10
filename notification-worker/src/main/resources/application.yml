@@ -35,6 +35,12 @@ spring:
       # 시간이 지났다고 오프셋을 커밋하지 않습니다. 처리하지도 않은 메시지를 처리한 것으로
       # 표시해 유실시키는 것을 막습니다.
       enable-auto-commit: false
+    producer:
+      # 재시도를 소진한 메시지를 DLQ 토픽으로 옮길 때만 씁니다. 발송 지시를 만들어내지는 않습니다.
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # DLQ 발행이 확정되기 전에 성공으로 치면 그 메시지는 어디에도 남지 않고 사라집니다.
+      acks: all
     listener:
       # 한 번에 가져온 묶음을 다 처리한 뒤 오프셋을 커밋합니다. 커밋 직전에 죽으면 그 묶음을
       # 다시 받으므로 중복이 생길 수 있습니다. record로 바꾸면 중복 범위가 한 건으로 좁아지는
@@ -48,6 +54,20 @@ notification:
     send-topic:
       # notification-api가 발행하는 토픽과 같아야 합니다.
       name: notification.send
+
+    # 재시도를 소진한 발송 지시가 쌓이는 곳입니다. 워커만 쓰므로 워커가 만듭니다.
+    dlq-topic:
+      name: notification.send.dlq
+      partitions: 10
+      replicas: 1
+      # 발송 토픽(7일)보다 길게 둡니다. 실패 원인을 확인하고 재처리할 시간이 필요합니다.
+      retention-days: 30
+
+  retry:
+    # 재시도 사이에 기다리는 시간입니다. 이 시간 동안 해당 파티션은 멈춰 있습니다.
+    interval-millis: 1000
+    # 최초 시도 이후 추가로 시도할 횟수입니다. 2면 총 3회 시도하고 DLQ로 보냅니다.
+    max-retries: 2
 
   provider:
     base-url: http://localhost:8081

@@ -43,7 +43,12 @@ public class NotificationSendService {
 	 * {@code PENDING}이므로 구간 재처리로 다시 보낼 수 있습니다. 재처리는 이벤트 식별자를
 	 * 새로 발급하므로 이 기록에 걸리지 않습니다.
 	 *
+	 * <p>발송에 실패하면 처리 기록을 지우고 예외를 던집니다. 기록을 남겨두면 Kafka가 메시지를
+	 * 다시 배달해도 중복으로 걸러져 재시도가 이루어지지 않기 때문입니다. 반대로 발송 건을
+	 * 찾지 못한 경우는 다시 시도해도 결과가 같으므로 기록을 그대로 두고 예외도 던지지 않습니다.
+	 *
 	 * @param event 발송 지시
+	 * @throws NotificationSendFailedException 발송사 호출이 실패한 경우
 	 */
 	public void send(NotificationSendEvent event) {
 		if (!processedEventRepository.claim(event.eventId(), event.messageId(), LocalDateTime.now())) {
@@ -70,9 +75,13 @@ public class NotificationSendService {
 		LocalDateTime sentAt = LocalDateTime.now();
 		if (result.success()) {
 			message.markSuccess(result.providerMessageId(), sentAt);
-		} else {
-			message.markFail(result.failureReason(), sentAt);
+			messageRepository.save(message);
+			return;
 		}
+
+		message.markFail(result.failureReason(), sentAt);
 		messageRepository.save(message);
+		processedEventRepository.release(event.eventId());
+		throw new NotificationSendFailedException(event.messageId(), result.failureReason());
 	}
 }

@@ -1,6 +1,7 @@
 package com.notification.worker.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -66,6 +67,28 @@ class NotificationSendServiceTests {
 	}
 
 	/**
+	 * 발송에 실패하면 Kafka가 같은 메시지를 다시 배달해 재시도합니다.
+	 * 처리 기록이 남아 있으면 중복으로 걸러져 재시도가 아예 이루어지지 않습니다.
+	 */
+	@Test
+	void releasesClaimSoRedeliveredEventIsRetried() {
+		Long messageId = insertPendingMessage();
+		given(providerClient.send(any(ProviderSendRequest.class)))
+				.willReturn(ProviderSendResult.fail(FailureReason.TIMEOUT))
+				.willReturn(ProviderSendResult.success("provider-message-1"));
+		NotificationSendEvent event = eventFor(messageId);
+
+		assertThatThrownBy(() -> sendService.send(event))
+				.isInstanceOf(NotificationSendFailedException.class);
+		sendService.send(event);
+
+		then(providerClient).should(times(2)).send(any(ProviderSendRequest.class));
+		NotificationMessage message = messageRepository.findById(messageId).orElseThrow();
+		assertThat(message.getStatus()).isEqualTo(MessageStatus.SUCCESS);
+		assertThat(message.getFailureReason()).isNull();
+	}
+
+	/**
 	 * 구간 재처리는 같은 발송 건에 대해 이벤트 식별자를 새로 발급합니다.
 	 * 중복 차단이 재처리까지 막아버리지 않는지 확인합니다.
 	 */
@@ -97,12 +120,13 @@ class NotificationSendServiceTests {
 	}
 
 	@Test
-	void recordsFailureReasonWhenProviderRejects() {
+	void recordsFailureReasonAndThrowsWhenProviderRejects() {
 		Long messageId = insertPendingMessage();
 		given(providerClient.send(any(ProviderSendRequest.class)))
 				.willReturn(ProviderSendResult.fail(FailureReason.RATE_LIMIT));
 
-		sendService.send(eventFor(messageId));
+		assertThatThrownBy(() -> sendService.send(eventFor(messageId)))
+				.isInstanceOf(NotificationSendFailedException.class);
 
 		NotificationMessage message = messageRepository.findById(messageId).orElseThrow();
 		assertThat(message.getStatus()).isEqualTo(MessageStatus.FAIL);
