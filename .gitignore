@@ -64,6 +64,7 @@ load-test/results/*.csv
 
 ### AI workspace ###
 .ai/
+.claude/
 
 ### OS ###
 .DS_Store
