@@ -1,0 +1,16 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-worker-test
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      # 테스트는 브로커 없이 실행합니다. 켜두면 리스너가 브로커에 붙으려 계속 재시도하고,
+      # 브로커가 떠 있으면 진짜 발송 지시를 집어가 버립니다.
+      auto-startup: false
+
+notification:
+  kafka:
+    send-topic:
+      name: notification.send
