@@ -27,6 +27,14 @@ notification:
       replicas: 1
       retention-days: 7
 
+  outbox:
+    publish:
+      # 스케줄러를 꺼둡니다. 켜두면 테스트가 만든 outbox 행을 주기 실행이 먼저 집어가
+      # 검증 대상이 사라집니다. 발행 로직은 서비스를 직접 호출해 검증합니다.
+      enabled: false
+      interval-millis: 1000
+      batch-size: 500
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s
