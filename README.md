@@ -28,16 +28,24 @@ v1은 v2 완성 후에도 삭제하지 않고 `v1.0-sync` 태그로 보존합니
 
 ## 기술 스택
 
-Java 17 · Spring Boot 4.1.0 · Spring Data JPA · MySQL 8 · Gradle · Docker Compose · k6
+Java 17 · Spring Boot 4.1.0 · Spring Data JPA · MySQL 8 · Gradle · k6
 
 v2에서 Apache Kafka, Prometheus, Grafana가 추가됩니다.
 
 ## 실행
 
-```bash
-# 인프라 기동
-docker compose up -d
+로컬에 MySQL 8이 실행 중이어야 합니다. 최초 1회 스키마와 계정을 준비합니다.  
+(아래 아이디와 비밀번호는 예시입니다.)
 
+```sql
+CREATE DATABASE notification CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'notification'@'localhost' IDENTIFIED BY 'notification';
+GRANT ALL PRIVILEGES ON notification.* TO 'notification'@'localhost';
+```
+
+기존 계정을 쓰려면 `DB_USERNAME`, `DB_PASSWORD` 환경변수로 덮어씁니다.
+
+```bash
 # 가짜 발송사 서버 (포트 8081)
 cd mock-provider && ./gradlew bootRun
 
@@ -58,9 +66,9 @@ cd notification-api && ./gradlew bootRun
 **v1 — 동기 처리**
 
 - [x] mock-provider 구현 (지연 · 실패율 · rate limit 조절)
-- [ ] 도메인 설계 및 발송 요청 API
-- [ ] 동기 발송 로직
-- [ ] 부하 테스트 및 결과 기록
+- [x] 도메인 설계 및 발송 요청 API
+- [x] 동기 발송 로직
+- [x] 부하 테스트 및 결과 기록
 
 **v2 — Kafka 기반 비동기 처리**
 
@@ -74,9 +82,21 @@ cd notification-api && ./gradlew bootRun
 
 ## 측정 결과
 
-부하 테스트 완료 후 작성 예정입니다. 측정 항목은 다음과 같습니다.
+v1 측정을 마쳤습니다. 전체 기록은 [`docs/load-test-v1.md`](./docs/load-test-v1.md)에 있습니다.
 
-- 수신자 규모별(100 / 10,000 / 100,000건) 발송 소요시간 및 API 응답시간 p50 · p95 · p99
-- 발송사 지연이 200ms → 3,000ms로 증가했을 때의 영향
-- 동시 발송 요청 시 커넥션 풀 및 스레드 점유 상태
-- (v2) 파티션 수에 따른 처리량 변화, 부하 종료 후 컨슈머 lag 회복 시간
+| 지표 | v1 |
+|---|---|
+| 100,000건 발송 소요시간 | **6시간 19분** |
+| 발송 처리량 | 4.4건/초 (규모와 무관하게 고정) |
+| 발송사 지연 전파 | 1:1 (지연 3초 시 10만 건 85시간) |
+| 발송 중 접수 API p95 | 동시 발송 200건에서 **56.99초** |
+| 실패 건 처리 | 재시도 없음, 2.97% 전량 유실 |
+
+v1의 한계는 특정 규모에서 무너지는 것이 아니라 **구조적으로 일정 속도 이상 낼 수 없다**는 데 있습니다.
+수신자를 1,000배 늘려도 건당 비용은 1.2%만 증가했고, 10만 행이 쌓인 상태에서도 인덱스는 정상 동작했습니다.
+구현 결함이 아니라 순차 호출이라는 구조가 병목입니다.
+
+건당 226ms 중 200ms가 발송사 응답 대기이며 이 시간 동안 CPU는 유휴 상태입니다.
+순수한 I/O 대기이므로 병렬화로 단축할 수 있고, v2는 이 지점을 목표로 합니다.
+
+(v2) 파티션 수에 따른 처리량 변화, 부하 종료 후 컨슈머 lag 회복 시간을 추가로 측정합니다.
