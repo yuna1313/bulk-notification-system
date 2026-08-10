@@ -12,7 +12,6 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -94,13 +93,18 @@ public class OutboxEvent extends BaseTimeEntity {
 	/**
 	 * 발행 대기 상태의 outbox 항목을 생성합니다.
 	 *
+	 * <p>식별자를 여기서 만들지 않고 이벤트에서 받는 이유는, 같은 값이 이 행과 {@code payload}
+	 * 양쪽에 들어가야 하기 때문입니다. 행에 있는 값은 재처리 대상을 고를 때 쓰고,
+	 * payload에 있는 값은 Kafka에 실려 워커까지 갑니다.
+	 *
+	 * @param eventId 이벤트 식별자
 	 * @param notificationId 이 이벤트가 속한 발송 요청 식별자
 	 * @param messageId 수신자별 발송 건 식별자
 	 * @param payload 직렬화한 이벤트 본문
 	 * @return 발행 대기 상태의 outbox 항목
 	 */
-	public static OutboxEvent create(Long notificationId, Long messageId, String payload) {
-		return new OutboxEvent(UUID.randomUUID().toString(), notificationId, messageId, payload);
+	public static OutboxEvent create(String eventId, Long notificationId, Long messageId, String payload) {
+		return new OutboxEvent(eventId, notificationId, messageId, payload);
 	}
 
 	/**

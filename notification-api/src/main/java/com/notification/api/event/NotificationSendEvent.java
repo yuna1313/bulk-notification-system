@@ -1,5 +1,9 @@
 package com.notification.api.event;
 
+import com.notification.api.domain.Notification;
+import com.notification.api.domain.NotificationMessage;
+import java.util.UUID;
+
 /**
  * 수신자 한 명에게 발송하라는 지시를 담은 이벤트입니다.
  *
@@ -24,4 +28,25 @@ public record NotificationSendEvent(
 		String channel,
 		String content
 ) {
+
+	/**
+	 * 발송 건 하나에 대한 발송 지시 이벤트를 만듭니다.
+	 *
+	 * <p>이벤트 식별자를 여기서 새로 발급합니다. 같은 발송 건이라도 구간 재처리로 다시 만들면
+	 * 다른 식별자를 받으며, 워커는 이 차이로 재배달과 재처리를 구분합니다.
+	 *
+	 * @param notification 발송 요청
+	 * @param message 수신자별 발송 건
+	 * @return 발송 지시 이벤트
+	 */
+	public static NotificationSendEvent create(Notification notification, NotificationMessage message) {
+		return new NotificationSendEvent(
+				UUID.randomUUID().toString(),
+				notification.getId(),
+				message.getId(),
+				message.getRecipientId(),
+				notification.getChannel().name(),
+				notification.getContent()
+		);
+	}
 }
