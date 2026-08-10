@@ -6,8 +6,8 @@ spring:
     driver-class-name: org.h2.Driver
   jpa:
     hibernate:
-      # 운영에서는 validate지만 테스트는 붙을 DB가 없으므로 매핑에서 스키마를 만들어 씁니다.
-      # 워커가 매핑한 컬럼만 생성되며, 매핑하지 않은 컬럼은 테스트 스키마에 없습니다.
+      # 매 테스트마다 빈 H2에 매핑으로 스키마를 만듭니다. 워커가 매핑한 컬럼만 생성되며,
+      # 매핑하지 않은 컬럼(recipient_id 등)은 테스트 스키마에 없습니다.
       ddl-auto: create-drop
     open-in-view: false
 

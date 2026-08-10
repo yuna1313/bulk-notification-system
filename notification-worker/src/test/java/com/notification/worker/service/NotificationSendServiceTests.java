@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import com.notification.worker.client.MockProviderClient;
 import com.notification.worker.client.ProviderSendResult;
@@ -48,6 +49,36 @@ class NotificationSendServiceTests {
 	@AfterEach
 	void clear() {
 		messageRepository.deleteAll();
+		jdbcTemplate.update("delete from processed_event");
+	}
+
+	@Test
+	void skipsWhenSameEventArrivesTwice() {
+		Long messageId = insertPendingMessage();
+		given(providerClient.send(any(ProviderSendRequest.class)))
+				.willReturn(ProviderSendResult.success("provider-message-1"));
+		NotificationSendEvent event = eventFor(messageId);
+
+		sendService.send(event);
+		sendService.send(event);
+
+		then(providerClient).should(times(1)).send(any(ProviderSendRequest.class));
+	}
+
+	/**
+	 * 구간 재처리는 같은 발송 건에 대해 이벤트 식별자를 새로 발급합니다.
+	 * 중복 차단이 재처리까지 막아버리지 않는지 확인합니다.
+	 */
+	@Test
+	void sendsAgainWhenSameMessageArrivesWithNewEventId() {
+		Long messageId = insertPendingMessage();
+		given(providerClient.send(any(ProviderSendRequest.class)))
+				.willReturn(ProviderSendResult.success("provider-message-1"));
+
+		sendService.send(eventFor(messageId));
+		sendService.send(eventFor(messageId));
+
+		then(providerClient).should(times(2)).send(any(ProviderSendRequest.class));
 	}
 
 	@Test

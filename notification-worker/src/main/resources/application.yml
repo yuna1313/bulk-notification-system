@@ -15,9 +15,9 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      # 워커는 스키마를 절대 바꾸지 않습니다. 매핑이 실제 테이블과 맞는지만 확인하고,
-      # 어긋나면 기동에 실패해 즉시 알 수 있게 합니다.
-      ddl-auto: validate
+      # notification-api와 같게 맞췄습니다. 워커 전용 테이블(processed_event)이 없으면 만들고,
+      # 공용 테이블은 매핑한 컬럼이 이미 다 있으므로 건드리지 않습니다.
+      ddl-auto: update
     open-in-view: false
 
   kafka:
