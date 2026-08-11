@@ -34,9 +34,15 @@ services:
 
       KAFKA_LOG_DIRS: /var/lib/kafka/data
     volumes:
-      - ./docker/data/kafka:/var/lib/kafka/data
+      # 호스트 경로를 직접 마운트하지 않습니다. Windows 경로를 바인드하면 토픽을 삭제한 뒤
+      # Kafka가 남은 디렉터리를 -stray로 옮길 때 rename이 AccessDeniedException으로 실패하고,
+      # 로그 디렉터리가 offline 처리되면서 브로커가 기동 중 종료됩니다.
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
       interval: 10s
       timeout: 5s
       retries: 12
+
+volumes:
+  kafka-data:
