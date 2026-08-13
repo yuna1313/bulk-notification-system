@@ -12,7 +12,37 @@ spring:
     open-in-view: false
     show-sql: true
 
+  # 테스트는 Kafka 브로커 없이 실행합니다. 토픽 자동 생성을 꺼두지 않으면
+  # 기동할 때마다 브로커에 접속을 시도해 테스트가 느려집니다.
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      auto-create: false
+
 notification:
+  kafka:
+    send-topic:
+      name: notification.send
+      partitions: 10
+      replicas: 1
+      retention-days: 7
+
+  outbox:
+    publish:
+      # 스케줄러를 꺼둡니다. 켜두면 테스트가 만든 outbox 행을 주기 실행이 먼저 집어가
+      # 검증 대상이 사라집니다. 발행 로직은 서비스를 직접 호출해 검증합니다.
+      enabled: false
+      interval-millis: 1000
+      batch-size: 500
+
+  dispatch:
+    completion:
+      # 주기 실행을 꺼둡니다. 켜두면 테스트가 만든 발송 요청의 상태를 판정이 먼저 바꿔버려
+      # 검증 대상이 사라집니다. 판정 로직은 서비스를 직접 호출해 검증합니다.
+      enabled: false
+      interval-millis: 2000
+      batch-size: 100
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s

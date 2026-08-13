@@ -18,7 +18,41 @@ spring:
       hibernate:
         format_sql: true
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 브로커가 기록을 확정한 뒤에 성공으로 칩니다. 확정 전에 성공으로 처리하면 outbox에는
+      # 발행했다고 남는데 Kafka에는 없는 상태가 생깁니다.
+      acks: all
+
 notification:
+  kafka:
+    send-topic:
+      name: notification.send
+      # 동시에 발송할 수 있는 컨슈머 수의 상한입니다. 부하 테스트에서 바꿔가며 측정합니다.
+      partitions: 10
+      replicas: 1
+      retention-days: 7
+
+  outbox:
+    publish:
+      enabled: true
+      # 발행 주기입니다. 짧으면 발송이 빨리 시작되고, 길면 빈 조회가 줄어듭니다.
+      interval-millis: 1000
+      # 한 주기에 발행할 최대 건수입니다. 처리량에 직접 영향을 주므로 측정 대상입니다.
+      batch-size: 500
+
+  dispatch:
+    completion:
+      enabled: true
+      # 발송이 실제로 끝난 시점과 상태가 완료로 바뀌는 시점의 최대 간격입니다.
+      # 완료 시각 자체는 마지막 발송 시각으로 남기므로 이 지연이 소요시간에 섞이지는 않습니다.
+      interval-millis: 2000
+      # 한 주기에 확인할 발송 요청 수입니다.
+      batch-size: 100
+
   provider:
     base-url: http://localhost:8081
     connect-timeout: 2s

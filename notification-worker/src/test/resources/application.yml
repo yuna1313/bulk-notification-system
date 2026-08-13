@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:notification;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      # 매 테스트마다 빈 H2에 매핑으로 스키마를 만듭니다. 워커가 매핑한 컬럼만 생성되며,
+      # 매핑하지 않은 컬럼(recipient_id 등)은 테스트 스키마에 없습니다.
+      ddl-auto: create-drop
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-worker-test
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # DLQ 토픽을 만들려고 브로커에 접속하지 않게 합니다.
+    admin:
+      auto-create: false
+    listener:
+      # 테스트는 브로커 없이 실행합니다. 켜두면 리스너가 브로커에 붙으려 계속 재시도하고,
+      # 브로커가 떠 있으면 진짜 발송 지시를 집어가 버립니다.
+      auto-startup: false
+
+notification:
+  kafka:
+    send-topic:
+      name: notification.send
+
+    dlq-topic:
+      name: notification.send.dlq
+      partitions: 10
+      replicas: 1
+      retention-days: 30
+
+  retry:
+    interval-millis: 1000
+    max-retries: 2
+
+  provider:
+    base-url: http://localhost:8081
+    connect-timeout: 2s
+    read-timeout: 10s

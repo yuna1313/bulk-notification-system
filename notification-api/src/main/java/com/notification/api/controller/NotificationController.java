@@ -55,23 +55,24 @@ public class NotificationController {
 	}
 
 	/**
-	 * 접수된 발송 요청을 실제로 발송합니다.
+	 * 접수된 발송 요청을 발송 대기열에 올립니다.
 	 *
-	 * <p>일부 수신자에 대한 발송이 실패해도 발송 작업 자체는 수행되었으므로 200으로 응답하고,
-	 * 실패 건수는 응답 데이터에 담습니다.
+	 * <p>응답 시점에는 아직 발송되지 않았으므로 200이 아니라 202로 응답합니다.
+	 * 진행 상황은 발송 현황 조회 API로 확인해야 합니다.
 	 *
 	 * @param id 발송 요청 식별자
-	 * @return 성공 건수, 실패 건수, 소요시간이 담긴 공통 API 응답
+	 * @return 대기열에 올린 건수와 접수 소요시간이 담긴 공통 API 응답
 	 */
 	@Operation(
 			summary = "발송 실행",
-			description = "수신자에게 순차적으로 발송하고 건별 결과를 기록합니다. 재시도는 하지 않습니다."
+			description = "수신자별 발송 지시를 대기열에 쌓습니다. 실제 발송은 워커가 이어서 처리하므로 응답 시점에는 아직 발송되지 않았습니다."
 	)
 	@PostMapping("/{id}/dispatch")
 	public ResponseEntity<ApiResponse<NotificationDispatchResponse>> dispatch(@PathVariable Long id) {
 		NotificationDispatchResponse response = dispatchService.dispatch(id);
-		return ResponseEntity.ok(
-				ApiResponse.of(NotificationResponseCode.NOTIFICATION_DISPATCH_SUCCESS, response));
+		return ResponseEntity
+				.status(HttpStatus.ACCEPTED)
+				.body(ApiResponse.of(NotificationResponseCode.NOTIFICATION_DISPATCH_SUCCESS, response));
 	}
 
 	/**

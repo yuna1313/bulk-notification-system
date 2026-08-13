@@ -1,20 +1,16 @@
 package com.notification.api.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.notification.api.client.MockProviderClient;
-import com.notification.api.client.ProviderSendResult;
-import com.notification.api.client.dto.ProviderSendRequest;
-import com.notification.api.domain.FailureReason;
 import com.notification.api.domain.Notification;
 import com.notification.api.domain.NotificationChannel;
 import com.notification.api.repository.NotificationMessageRepository;
 import com.notification.api.repository.NotificationRepository;
+import com.notification.api.repository.OutboxEventRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -37,11 +33,15 @@ class NotificationStatusControllerTests {
 	@Autowired
 	private NotificationMessageRepository messageRepository;
 
+	@Autowired
+	private OutboxEventRepository outboxRepository;
+
 	@MockitoBean
 	private MockProviderClient providerClient;
 
 	@AfterEach
 	void clear() {
+		outboxRepository.deleteAll();
 		messageRepository.deleteAll();
 		notificationRepository.deleteAll();
 	}
@@ -62,27 +62,29 @@ class NotificationStatusControllerTests {
 				.andExpect(jsonPath("$.data.elapsedMillis").doesNotExist());
 	}
 
+	/**
+	 * 발송 실행 직후에는 발송 지시를 쌓기만 한 상태이므로 건수가 하나도 움직이지 않아야 합니다.
+	 *
+	 * <p>완료 시각과 소요시간은 워커가 모든 발송 건을 처리한 뒤에 채워지며, 그 처리는
+	 * 아직 만들지 않았습니다.
+	 */
 	@Test
-	void getStatusReturnsSuccessAndFailCountAfterDispatch() throws Exception {
-		given(providerClient.send(any(ProviderSendRequest.class)))
-				.willReturn(ProviderSendResult.success("provider-message-1"))
-				.willReturn(ProviderSendResult.fail(FailureReason.RATE_LIMIT))
-				.willReturn(ProviderSendResult.success("provider-message-3"));
+	void getStatusReturnsEveryMessageAsPendingRightAfterDispatch() throws Exception {
 		Long notificationId = saveNotification("user-1", "user-2", "user-3");
 
 		mockMvc.perform(post("/api/notifications/{id}/dispatch", notificationId))
-				.andExpect(status().isOk());
+				.andExpect(status().isAccepted());
 
 		mockMvc.perform(get("/api/notifications/{id}", notificationId))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data.status").value("COMPLETED"))
+				.andExpect(jsonPath("$.data.status").value("DISPATCHING"))
 				.andExpect(jsonPath("$.data.totalCount").value(3))
-				.andExpect(jsonPath("$.data.successCount").value(2))
-				.andExpect(jsonPath("$.data.failCount").value(1))
-				.andExpect(jsonPath("$.data.pendingCount").value(0))
+				.andExpect(jsonPath("$.data.successCount").value(0))
+				.andExpect(jsonPath("$.data.failCount").value(0))
+				.andExpect(jsonPath("$.data.pendingCount").value(3))
 				.andExpect(jsonPath("$.data.dispatchStartedAt").exists())
-				.andExpect(jsonPath("$.data.dispatchFinishedAt").exists())
-				.andExpect(jsonPath("$.data.elapsedMillis").isNumber());
+				.andExpect(jsonPath("$.data.dispatchFinishedAt").doesNotExist())
+				.andExpect(jsonPath("$.data.elapsedMillis").doesNotExist());
 	}
 
 	@Test
